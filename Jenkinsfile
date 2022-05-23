@@ -1,53 +1,40 @@
-pipeline{
-  agent none
-  stages{
-    stage('Compile'){
-      agent any
-      steps{
-        sh 'mvn compile'
-      }       
+node{
+     
+    stage('SCM Checkout'){
+        git credentialsId: 'GIT_CREDENTIALS', url:  '',branch: 'master'
     }
-    stage('Code Quality'){
-      agent any
-      steps{
-        sh 'echo Sonarqube Code Quality Check Done'
-      }
-    }
-    stage('Test'){
-      agent any
-      steps{
-        sh 'mvn test'
-      }
+    
+    stage(" Maven Clean Package"){
+      def mavenHome =  tool name: "Maven-3.6.1", type: "maven"
+      def mavenCMD = "${mavenHome}/bin/mvn"
+      sh "${mavenCMD} clean package"
+      
     } 
-    stage('Package'){
-      agent any
-      steps{
-        sh 'mvn package'
-      }
+    
+    
+    stage('Build Docker Image'){
+        sh 'docker build -t Devopsassign/docker-spring-boot .'
     }
-    stage('Upload War File To Artifactory'){
-      agent any
-      steps{
-        sh 'echo Uploaded War file to Artifactory'
-      }
-    }
-    stage('Deploy'){
-      agent any
-      steps{
-        sh label: '', script: '''rm -rf dockerimg
-mkdir dockerimg
-cd dockerimg
-cp /var/lib/jenkins/workspace/JenkinsfileJob/gameoflife-web/target/gameoflife.war .
-touch dockerfile
-cat <<EOT>>dockerfile
-FROM tomcat
-ADD gameoflife.war /usr/local/tomcat/webapps/
-CMD ["catalina.sh", "run"]
-EXPOSE 8080
-EOT
-sudo docker build -t webimage:$BUILD_NUMBER .
-sudo docker container run -itd --name webserver$BUILD_NUMBER -p 8080 webimage:$BUILD_NUMBER'''
-      }
-    }
-  }
+    
+    stage('Push Docker Image'){
+        withCredentials([string(credentialsId: 'DOKCER_HUB_PASSWORD', variable: 'DOKCER_HUB_PASSWORD')]) {
+          sh "docker login -u Devopsassign -p ${DOKCER_HUB_PASSWORD}"
+        }
+        sh 'docker push Devopsassign/docker-spring-boot'
+     }
+     
+     stage("Deploy To Kuberates Cluster"){
+       kubernetesDeploy(
+         configs: 'springbootkubernetes.yml', 
+         kubeconfigId: 'KUBERNATES_CONFIG',
+         enableConfigSubstitution: true
+        )
+     }
+	 
+	  /**
+      stage("Deploy To Kuberates Cluster"){
+        sh 'kubectl apply -f springBootMongo.yml'
+        sh 'kubectl autoscale deployment mydeploy --cpu-percent=20 --min=1 --max=10'
+      } **/
+     
 }
