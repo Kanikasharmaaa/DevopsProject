@@ -15,7 +15,7 @@ spec:
      spec:
       containers:
         - name: c00
-          image: Image 1
+          image: Imagejar1
           ports:
           - containerPort: 80
           resources:
