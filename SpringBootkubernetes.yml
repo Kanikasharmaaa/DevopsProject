@@ -15,7 +15,7 @@ spec:
      spec:
       containers:
         - name: c00
-          image: spring-boot-do
+          image: Image 1
           ports:
           - containerPort: 80
           resources:
