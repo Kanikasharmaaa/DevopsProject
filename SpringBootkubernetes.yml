@@ -3,7 +3,7 @@ apiVersion: apps/v1
 metadata:
    name: mydeploy
 spec:
-   replicas: 1
+   replicas: 2
    selector:
     matchLabels:
      name: deployment
@@ -20,6 +20,6 @@ spec:
           - containerPort: 80
           resources:
             limits:
-              cpu: 400m
+              cpu: 1
             requests:
-              cpu: 200m
+              cpu: 500m
